@@ -14,12 +14,13 @@
 #include <QUrl>
 
 #include "attachmentlistmodel.h"
+#include "emailmessage.h"
 #include "emailagent.h"
 #include "emailutils.h"
 
-AttachmentListModel::AttachmentListModel(QObject *parent) :
+AttachmentListModel::AttachmentListModel(EmailMessage *parent) :
     QAbstractListModel(parent)
-  , m_messageId(QMailMessageId())
+  , m_message(parent)
   , m_attachmentFileWatcher(new QFileSystemWatcher(this))
 {
     roles.insert(ContentLocation, "contentLocation");
@@ -32,6 +33,11 @@ AttachmentListModel::AttachmentListModel(QObject *parent) :
     roles.insert(Type, "type");
     roles.insert(Url, "url");
     roles.insert(ProgressInfo, "progressInfo");
+
+    resetModel();
+
+    connect(parent, &EmailMessage::attachmentsChanged,
+            this, &AttachmentListModel::resetModel);
 
     connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
             this, &AttachmentListModel::onAttachmentDownloadStatusChanged);
@@ -181,8 +187,7 @@ void AttachmentListModel::onDirectoryChanged(const QString &path)
 
 void AttachmentListModel::onMessagesUpdated(const QMailMessageIdList &ids)
 {
-    if (ids.contains(m_messageId)) {
-        m_message = QMailMessage(m_messageId);
+    if (m_message && ids.contains(m_message->id())) {
         // Message got updated, number of attachments may have changed.
         resetModel();
     }
@@ -233,18 +238,6 @@ int AttachmentListModel::count() const
     return rowCount();
 }
 
-int AttachmentListModel::messageId() const
-{
-    return m_messageId.toULongLong();
-}
-
-void AttachmentListModel::setMessageId(int id)
-{
-    m_messageId = QMailMessageId(id);
-    m_message = QMailMessage(m_messageId);
-    resetModel();
-}
-
 void AttachmentListModel::resetModel()
 {
     beginResetModel();
@@ -255,17 +248,13 @@ void AttachmentListModel::resetModel()
         m_attachmentFileWatcher->removePaths(dirs);
     }
 
-    if (m_messageId.isValid()) {
-        const QList<QMailMessagePart::Location> locations
-            = m_message.isEncrypted()
-            ? QList<QMailMessagePart::Location>() << m_message.partAt(1).location()
-            : m_message.findAttachmentLocations();
-        for (const QMailMessagePart::Location &location : locations) {
+    if (m_message) {
+        for (const QMailMessagePart &part : m_message->attachmentParts()) {
             QString path;
             Attachment *item = new Attachment;
-            item->location = location.toString(true);
-            item->part = m_message.partAt(location);
-            item->status = EmailAgent::instance()->attachmentDownloadStatus(m_message, item->location, &path);
+            item->location = part.location().toString(true);
+            item->part = part;
+            item->status = EmailAgent::instance()->attachmentDownloadStatus(*m_message, item->location, &path);
             item->progressInfo = EmailAgent::instance()->attachmentDownloadProgress(item->location);
 
             // if attachment is in the queue for download we will get a path update later

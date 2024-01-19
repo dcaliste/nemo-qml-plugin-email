@@ -521,6 +521,30 @@ QStringList EmailMessage::attachments()
     return m_attachments;
 }
 
+QList<const QMailMessagePart&> EmailMessage::attachmentParts() const
+{
+    QList<const QMailMessagePart&> parts;
+
+    if (m_id.isValid() && m_msg.isEncrypted()) {
+        // Treat the encrypted part as an attachment to allow external treatment.
+        parts << m_msg.partAt(1);
+    } else if (m_id.isValid() && (m_msg.status() & QMailMessageMetaData::HasAttachments)) {
+        for (const QMailMessagePart::Location &location : m_msg.findAttachmentLocations()) {
+            parts << m_msg.partAt(location);
+        }
+    }
+
+    return parts;
+}
+
+AttachmentListModel* EmailMessage::attachmentModel()
+{
+    if (!m_attachmentModel) {
+        m_attachmentModel = new AttachmentListModel(this);
+    }
+    return m_attachmentModel;
+}
+
 int EmailMessage::accountId() const
 {
     return m_msg.parentAccountId().toULongLong();
