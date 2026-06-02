@@ -175,6 +175,28 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::XOAuth2Mechanism << QMail::PlainMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism);
+
+    // Autoconfig file is generic enough to have a %EMAILDOMAIN%
+    // placeholder in the <domain> element. This is generating
+    // a warning since the placeholder is not adviced in this element.
+    QTest::newRow("placeholder in <domain>")
+        << "kakodane.eu"
+        << QUrl("https://autoconfig.kakodane.eu/mail/config-v1.1.xml")
+        << "imap.one.com"
+        << "pop.one.com"
+        << "send.one.com"
+        << 143 << 993 << 0
+        << 110 << 995 << 0
+        << 2525 << 465 << 587
+        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
+        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism);
 }
 
 void tst_AutoConfig::provider()
