@@ -214,7 +214,17 @@ void EmailAutoConfig::setProvider(const QString &provider)
                               const QDomNodeList domains
                                   = email.elementsByTagName(QStringLiteral("domain"));
                               for (int i = 0; !matchingDomain && i < domains.length(); i++) {
-                                  matchingDomain = domains.at(i).toElement().text() == m_provider;
+                                  const QString domain = domains.at(i).toElement().text();
+                                  if (domain == QStringLiteral("%EMAILDOMAIN%")) {
+                                      // https://datatracker.ietf.org/doc/draft-ietf-mailmaint-autoconfig/
+                                      // %EMAILDOMAIN% seems not accepted in <domain> elements,
+                                      // but are sometime used to create a generic
+                                      // config file for providers serving many domains.
+                                      qCWarning(lcEmail) << "%EMAILDOMAIN% placeholder in a <domain> element.";
+                                      matchingDomain = true;
+                                  } else {
+                                      matchingDomain = domain == m_provider;
+                                  }
                               }
                               if (matchingDomain) {
                                   m_status = Available;
