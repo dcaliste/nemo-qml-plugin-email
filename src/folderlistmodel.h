@@ -83,7 +83,8 @@ private:
     void createAndAddFolderItem(const QMailFolderId &mailFolderId, EmailFolder::FolderType mailFolderType,
                                 const QMailMessageKey &folderMessageKey);
     void updateCurrentFolderIndex();
-    void addFolderAndChildren(const QMailFolderId &folderId, QMailMessageKey messageKey, QList<QMailFolderId> &originalList);
+    void addFolderAndChildren(const QMailFolderId &folderId, QMailMessageKey messageKey,
+                              QList<QMailFolderId> &originalList);
     void resetModel();
     void doReloadModel();
     void checkResyncNeeded();

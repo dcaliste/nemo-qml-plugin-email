@@ -19,10 +19,10 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent)
     : QMailAccountListModel(parent)
     , m_persistentConnectionActive(false)
 {
-    connect(this, SIGNAL(rowsInserted(QModelIndex,int,int)),
-            this,SLOT(onAccountsAdded(QModelIndex,int,int)));
-    connect(this, SIGNAL(rowsRemoved(QModelIndex,int,int)),
-            this,SLOT(onAccountsRemoved(QModelIndex,int,int)));
+    connect(this, &EmailAccountListModel::rowsInserted,
+            this, &EmailAccountListModel::onAccountsAdded);
+    connect(this, &EmailAccountListModel::rowsRemoved,
+            this, &EmailAccountListModel::onAccountsRemoved);
 
     connect(QMailStore::instance(), &QMailStore::accountContentsModified,
             this, &EmailAccountListModel::onAccountContentsModified);
@@ -41,7 +41,8 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent)
         m_unreadCountCache.insert(accountId, accountUnreadCount(accountId));
 
         // Check if any account has a persistent connection to the server(always online)
-        if (!m_persistentConnectionActive && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+        if (!m_persistentConnectionActive
+                && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
             m_persistentConnectionActive = true;
         }
     }
@@ -133,10 +134,10 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
     if (role == LastSynchronized) {
         if (account.lastSynchronized().isValid()) {
             return account.lastSynchronized().toLocalTime();
-        } else {
-            // Account was never synced, return zero
-            return 0;
         }
+
+        // Account was never synced, return zero
+        return 0;
     }
 
     if (role == StandardFoldersRetrieved) {
@@ -185,7 +186,8 @@ void EmailAccountListModel::onAccountsAdded(const QModelIndex &parent, int start
         }
 
         // Check if any of the new accounts has a persistent connection to the server(always online)
-        if (!m_persistentConnectionActive && (data(index(i), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+        if (!m_persistentConnectionActive
+                && (data(index(i), EmailAccountListModel::HasPersistentConnection)).toBool()) {
             m_persistentConnectionActive = true;
             emit persistentConnectionActiveChanged();
         }
@@ -215,7 +217,8 @@ void EmailAccountListModel::onAccountsRemoved(const QModelIndex &parent, int sta
                 m_lastUpdateTime = (data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime();
             }
             // Check if any of the remaining accounts has a persistent connection to the server(always online)
-            if (!m_persistentConnectionActive && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+            if (!m_persistentConnectionActive
+                    && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
                 m_persistentConnectionActive = true;
             }
         }
@@ -269,7 +272,8 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
         }
 
         // Check if any account has a persistent connection to the server(always online)
-        if (!m_persistentConnectionActive && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+        if (!m_persistentConnectionActive
+                && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
             m_persistentConnectionActive = true;
         }
     }

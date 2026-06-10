@@ -51,7 +51,8 @@ struct PartFinder {
 };
 
 // Supported image types by webkit
-const QStringList supportedImageTypes = (QStringList() <<  "jpeg" << "jpg" << "png" << "gif" << "bmp" << "ico" << "webp");
+const QStringList supportedImageTypes = (QStringList()
+                                         <<  "jpeg" << "jpg" << "png" << "gif" << "bmp" << "ico" << "webp");
 
 }
 
@@ -491,10 +492,8 @@ QStringList EmailMessage::attachmentLocations() const
     if (m_id.isValid() && m_msg.isEncrypted()) {
         // Treat the encrypted part as an attachment to allow external treatment.
         locations << m_msg.partAt(1).location().toString(true);
-    } else if (m_id.isValid() && (m_msg.status() & QMailMessageMetaData::HasAttachments)
-) {
-        for (const QMailMessagePart::Location &location : m_msg.findAttachmentLocations(
-)) {
+    } else if (m_id.isValid() && (m_msg.status() & QMailMessageMetaData::HasAttachments)) {
+        for (const QMailMessagePart::Location &location : m_msg.findAttachmentLocations()) {
             locations << location.toString(true);
         }
     }
@@ -505,8 +504,8 @@ QStringList EmailMessage::attachmentLocations() const
 AttachmentListModel::Attachment EmailMessage::attachment(const QString &location) const
 {
     AttachmentListModel::Attachment attachment;
-
     QMailMessagePartContainer::Location partLocation(location);
+
     if (m_id.isValid() && m_msg.contains(partLocation)) {
         QString path;
         QMailMessagePart part = m_msg.partAt(partLocation);
@@ -604,11 +603,11 @@ QString EmailMessage::body()
             }
             return QString();
         }
-    } else {
-        // Fallback to body text when message does not have container. E.g. when
-        // we're composing an email message.
-        return m_bodyText;
     }
+
+    // Fallback to body text when message does not have container. E.g. when
+    // we're composing an email message.
+    return m_bodyText;
 }
 
 QString EmailMessage::calendarInvitationUrl()
@@ -634,8 +633,8 @@ EmailMessage::AttachedDataStatus EmailMessage::calendarInvitationStatus() const
 QString EmailMessage::calendarInvitationBody() const
 {
     const QMailMessagePart *calendarPart = getCalendarPart();
-    return (calendarPart && calendarPart->contentAvailable()) ?
-                calendarPart->body().data() : QString();
+    return (calendarPart && calendarPart->contentAvailable())
+            ? calendarPart->body().data() : QString();
 }
 
 bool EmailMessage::calendarInvitationSupportsEmailResponses() const
@@ -650,7 +649,6 @@ bool EmailMessage::calendarInvitationSupportsEmailResponses() const
     }
 
     // Add other account types here when those support response by email
-
     return false;
 }
 
@@ -715,59 +713,59 @@ QString EmailMessage::htmlBody()
 {
     if (m_htmlBodyConstructed) {
         return m_htmlText;
-    } else {
-        // Fallback to plain message if no html body.
-        QMailMessagePartContainer *container = m_msg.findHtmlContainer();
-        if (contentType() == EmailMessage::HTML && container) {
-            if (container->contentAvailable()) {
-                // Some email clients don't add html tags to the html
-                // body in case there's no content in the email body itself
-                if (container->body().data().length()) {
-                    m_htmlText = container->body().data();
-                    // Check if we have some inline parts
-                    QList<QMailMessagePart::Location> inlineParts = m_msg.findInlinePartLocations();
-                    if (!inlineParts.isEmpty()) {
-                        // Check if we have something downloading already
-                        if (m_partsToDownload.isEmpty()) {
-                            insertInlineImages(inlineParts);
-                        }
+    }
+
+    // Fallback to plain message if no html body.
+    QMailMessagePartContainer *container = m_msg.findHtmlContainer();
+    if (contentType() == EmailMessage::HTML && container) {
+        if (container->contentAvailable()) {
+            // Some email clients don't add html tags to the html
+            // body in case there's no content in the email body itself
+            if (container->body().data().length()) {
+                m_htmlText = container->body().data();
+                // Check if we have some inline parts
+                QList<QMailMessagePart::Location> inlineParts = m_msg.findInlinePartLocations();
+                if (!inlineParts.isEmpty()) {
+                    // Check if we have something downloading already
+                    if (m_partsToDownload.isEmpty()) {
+                        insertInlineImages(inlineParts);
                     }
-                } else {
-                    m_htmlText = QStringLiteral("<br/>");
                 }
-                m_htmlBodyConstructed = true;
-                return m_htmlText;
             } else {
-                if (m_msg.multipartType() == QMailMessage::MultipartNone) {
-                    requestMessageDownload();
-                } else {
-                    requestMessagePartDownload(container);
-                }
-                return QString();
+                m_htmlText = QStringLiteral("<br/>");
             }
-        } else if (contentType() == EmailMessage::HTML) {
-            // Case with an in-line image.
-            // Create a fake HTML body to display the content inline.
-            if (m_msg.contentAvailable()) {
-                QString bodyData;
-                if (m_msg.body().transferEncoding() == QMailMessageBody::Base64) {
-                    bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Encoded));
-                } else {
-                    bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Decoded).toBase64());
-                }
-                m_htmlText
-                    = QString::fromLocal8Bit("<html><body><img src=\"data:%1;base64,%2\" nemo-inline-image-loading=\"no\" /></body></html>")
-                          .arg(m_msg.contentDisposition().filename(), bodyData);
-                m_htmlBodyConstructed = true;
-                return m_htmlText;
-            } else {
+            m_htmlBodyConstructed = true;
+            return m_htmlText;
+        } else {
+            if (m_msg.multipartType() == QMailMessage::MultipartNone) {
                 requestMessageDownload();
+            } else {
+                requestMessagePartDownload(container);
             }
             return QString();
-        } else {
-            return body();
         }
+    } else if (contentType() == EmailMessage::HTML) {
+        // Case with an in-line image.
+        // Create a fake HTML body to display the content inline.
+        if (m_msg.contentAvailable()) {
+            QString bodyData;
+            if (m_msg.body().transferEncoding() == QMailMessageBody::Base64) {
+                bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Encoded));
+            } else {
+                bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Decoded).toBase64());
+            }
+            m_htmlText
+                    = QString::fromLocal8Bit("<html><body><img src=\"data:%1;base64,%2\" nemo-inline-image-loading=\"no\" /></body></html>")
+                    .arg(m_msg.contentDisposition().filename(), bodyData);
+            m_htmlBodyConstructed = true;
+            return m_htmlText;
+        } else {
+            requestMessageDownload();
+        }
+        return QString();
     }
+
+    return body();
 }
 
 QString EmailMessage::inReplyTo() const
@@ -801,9 +799,9 @@ bool EmailMessage::multipleRecipients() const
     } else if (!recipients.contains(this->accountAddress(), Qt::CaseInsensitive)
                && !recipients.contains(this->replyTo(), Qt::CaseInsensitive)) {
         return true;
-    } else {
-        return false;
     }
+
+    return false;
 }
 
 int EmailMessage::numberOfAttachments() const
@@ -835,9 +833,9 @@ EmailMessage::Priority EmailMessage::priority() const
         return HighPriority;
     } else if (m_msg.status() & QMailMessage::LowPriority) {
         return LowPriority;
-    } else {
-        return NormalPriority;
     }
+
+    return NormalPriority;
 }
 
 QString EmailMessage::quotedBody()
@@ -1085,7 +1083,8 @@ void EmailMessage::setPriority(EmailMessage::Priority priority)
     emit priorityChanged();
 }
 
-void EmailMessage::setRead(bool read) {
+void EmailMessage::setRead(bool read)
+{
     if (read != this->read()) {
         if (read) {
             EmailAgent::instance()->markMessageAsRead(m_id.toULongLong());
@@ -1396,17 +1395,17 @@ QString EmailMessage::imageMimeType(const QMailMessageContentType &contentType, 
 {
     if (contentType.matches("image")) {
         return QString("image/%1").arg(QString::fromLatin1(contentType.subType().toLower()));
+    }
+
+    QFileInfo fileInfo(fileName);
+    QString fileType = fileInfo.suffix().toLower();
+    if (supportedImageTypes.contains(fileType)) {
+        return QString("image/%1").arg(fileType);
     } else {
-        QFileInfo fileInfo(fileName);
-        QString fileType = fileInfo.suffix().toLower();
-        if (supportedImageTypes.contains(fileType)) {
-            return QString("image/%1").arg(fileType);
-        } else {
-            qCWarning(lcEmail) << "Unsupported content type:"
-                               << contentType.type().toLower() + "/" + contentType.subType().toLower()
-                               << " from file: " << fileName;
-            return QString();
-        }
+        qCWarning(lcEmail) << "Unsupported content type:"
+                           << contentType.type().toLower() + "/" + contentType.subType().toLower()
+                           << " from file: " << fileName;
+        return QString();
     }
 }
 
@@ -1575,13 +1574,14 @@ EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QStri
 
 static QMailCrypto::VerificationResult verificationHelper(QMailMessage *message)
 {
-    QMailCryptographicServiceInterface *engine = 0;
+    QMailCryptographicServiceInterface *engine = nullptr;
     const QMailMessagePartContainer *cryptoContainer
         = QMailCryptographicService::findSignedContainer(message, &engine);
     QMailCrypto::VerificationResult result = (cryptoContainer && engine)
         ? engine->verifySignature(*cryptoContainer)
         : QMailCrypto::VerificationResult(QMailCrypto::MissingSignature);
     delete message;
+
     return result;
 }
 
@@ -1671,8 +1671,7 @@ EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
 typedef QPair<QSharedPointer<QMailMessage>, QMailCrypto::DecryptionResult> DecryptionMessage;
 static DecryptionMessage decryptionHelper(QMailMessage *message)
 {
-    const QMailCrypto::DecryptionResult result =
-        QMailCryptographicService::decrypt(message);
+    const QMailCrypto::DecryptionResult result = QMailCryptographicService::decrypt(message);
     return DecryptionMessage(QSharedPointer<QMailMessage>(message), result);
 }
 

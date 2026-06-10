@@ -46,26 +46,26 @@ public:
     {
         connect(manager, &QNetworkAccessManager::finished,
                 this, [this] (QNetworkReply *reply) {
-                          reply->deleteLater();
+            reply->deleteLater();
 
-                          if (reply->error() == QNetworkReply::NoError) {
-                              QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
-                              if (contentType.startsWith(QLatin1String("application/xml"))
-                                      || contentType.startsWith(QLatin1String("text/xml"))
-                                      || contentType.startsWith(QLatin1String("text/plain"))) {
-                                  emit fetched(reply->url(), reply);
-                                  return;
-                              } else {
-                                  qCWarning(lcEmail) << "Autoconfig returned unexpected content type, ignoring -" << contentType;
-                              }
-                          }
+            if (reply->error() == QNetworkReply::NoError) {
+                QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
+                if (contentType.startsWith(QLatin1String("application/xml"))
+                        || contentType.startsWith(QLatin1String("text/xml"))
+                        || contentType.startsWith(QLatin1String("text/plain"))) {
+                    emit fetched(reply->url(), reply);
+                    return;
+                } else {
+                    qCWarning(lcEmail) << "Autoconfig returned unexpected content type, ignoring -" << contentType;
+                }
+            }
 
-                          if (!urls.isEmpty()) {
-                              reply->manager()->get(nextRequest());
-                          } else {
-                              emit fetched(QUrl(), nullptr);
-                          }
-                      });
+            if (!urls.isEmpty()) {
+                reply->manager()->get(nextRequest());
+            } else {
+                emit fetched(QUrl(), nullptr);
+            }
+        });
         manager->get(nextRequest());
     }
 
@@ -104,10 +104,12 @@ public:
 
                 buffer << "<clientConfig version=\"1.1\">";
                 buffer << "<emailProvider id=\"" << provider << "\">";
-                buffer << "<incomingServer type=\"" << serverType(services.value("incomingServerType").toString()) << "\">";
+                buffer << "<incomingServer type=\"" << serverType(services.value("incomingServerType").toString())
+                       << "\">";
                 buffer << "<hostname>" << services.value("incomingServer").toString() << "</hostname>";
                 buffer << "<port>" << services.value("incomingPort").toString() << "</port>";
-                buffer << "<socketType>" << securityType(services.value("incomingSecureConnection").toString()) << "</socketType>";
+                buffer << "<socketType>" << securityType(services.value("incomingSecureConnection").toString())
+                       << "</socketType>";
                 // Auth mechanism was not initially present in the settings,
                 // default to plain.
                 buffer << "<authentication>password-cleartext</authentication>";
@@ -115,8 +117,10 @@ public:
                 buffer << "<outgoingServer type=\"smtp\">";
                 buffer << "<hostname>" << services.value("outgoingServer").toString() << "</hostname>";
                 buffer << "<port>" << services.value("outgoingPort").toString() << "</port>";
-                buffer << "<socketType>" << securityType(services.value("outgoingSecureConnection").toString()) << "</socketType>";
-                buffer << "<authentication>" << authorizationType(services.value("outgoingAuthentication").toString()) << "</authentication>";
+                buffer << "<socketType>" << securityType(services.value("outgoingSecureConnection").toString())
+                       << "</socketType>";
+                buffer << "<authentication>" << authorizationType(services.value("outgoingAuthentication").toString())
+                       << "</authentication>";
                 buffer << "</outgoingServer>";
                 buffer << "</emailProvider>";
                 buffer << "</clientConfig>";
@@ -199,61 +203,66 @@ void EmailAutoConfig::setProvider(const QString &provider)
         m_status = Unknown;
         emit statusChanged();
     }
+
     ProviderConfig *xmlFetcher = new ProviderConfig(provider, this);
     connect(xmlFetcher, &ProviderConfig::fetched,
             this, [this, xmlFetcher] (QUrl url, QIODevice *config) {
-                      xmlFetcher->deleteLater();
-                      if (config) {
-                          QString errorMsg;
-                          if (m_config.setContent(config, false, &errorMsg)) {
-                              const QDomElement root
-                                  = m_config.firstChildElement(QStringLiteral("clientConfig"));
-                              const QDomElement email
-                                  = root.firstChildElement(QStringLiteral("emailProvider"));
-                              bool matchingDomain = false;
-                              const QDomNodeList domains
-                                  = email.elementsByTagName(QStringLiteral("domain"));
-                              for (int i = 0; !matchingDomain && i < domains.length(); i++) {
-                                  const QString domain = domains.at(i).toElement().text();
-                                  if (domain == QStringLiteral("%EMAILDOMAIN%")) {
-                                      // https://datatracker.ietf.org/doc/draft-ietf-mailmaint-autoconfig/
-                                      // %EMAILDOMAIN% seems not accepted in <domain> elements,
-                                      // but are sometime used to create a generic
-                                      // config file for providers serving many domains.
-                                      qCWarning(lcEmail) << "%EMAILDOMAIN% placeholder in a <domain> element.";
-                                      matchingDomain = true;
-                                  } else {
-                                      matchingDomain = domain == m_provider;
-                                  }
-                              }
-                              if (matchingDomain) {
-                                  m_status = Available;
-                              } else {
-                                  qCWarning(lcEmail) << "wrong autoconfig XML, no matching domain" << m_provider;
-                                  m_status = Unavailable;
-                              }
-                          } else {
-                              qCWarning(lcEmail) << "cannot parse autoconfig:" << errorMsg;
-                              m_status = Unavailable;
-                          }
-                      } else {
-                          m_status = Unavailable;
-                      }
-                      if (m_status == Available) {
-                          m_source = url;
-                      } else {
-                          m_source = QUrl();
-                          // Fallback to local settings.
-                          SettingConfig setting(m_provider);
-                          if (!setting.asXML().isEmpty()
-                              && m_config.setContent(setting.asXML(), false)) {
-                              m_status = Available;
-                          }
-                      }
-                      emit sourceChanged();
-                      emit statusChanged();
-                      emit configChanged();
-                  });
+        xmlFetcher->deleteLater();
+
+        if (config) {
+            QString errorMsg;
+
+            if (m_config.setContent(config, false, &errorMsg)) {
+                const QDomElement root = m_config.firstChildElement(QStringLiteral("clientConfig"));
+                const QDomElement email = root.firstChildElement(QStringLiteral("emailProvider"));
+                bool matchingDomain = false;
+                const QDomNodeList domains = email.elementsByTagName(QStringLiteral("domain"));
+
+                for (int i = 0; !matchingDomain && i < domains.length(); i++) {
+                    const QString domain = domains.at(i).toElement().text();
+
+                    if (domain == QStringLiteral("%EMAILDOMAIN%")) {
+                        // https://datatracker.ietf.org/doc/draft-ietf-mailmaint-autoconfig/
+                        // %EMAILDOMAIN% seems not accepted in <domain> elements,
+                        // but are sometime used to create a generic
+                        // config file for providers serving many domains.
+                        qCWarning(lcEmail) << "%EMAILDOMAIN% placeholder in a <domain> element.";
+                        matchingDomain = true;
+                    } else {
+                        matchingDomain = domain == m_provider;
+                    }
+                }
+                if (matchingDomain) {
+                    m_status = Available;
+                } else {
+                    qCWarning(lcEmail) << "wrong autoconfig XML, no matching domain" << m_provider;
+                    m_status = Unavailable;
+                }
+            } else {
+                qCWarning(lcEmail) << "cannot parse autoconfig:" << errorMsg;
+                m_status = Unavailable;
+            }
+        } else {
+            m_status = Unavailable;
+        }
+
+        if (m_status == Available) {
+            m_source = url;
+        } else {
+            m_source = QUrl();
+            // Fallback to local settings.
+            SettingConfig setting(m_provider);
+            if (!setting.asXML().isEmpty()
+                    && m_config.setContent(setting.asXML(), false)) {
+                m_status = Available;
+            }
+        }
+
+        emit sourceChanged();
+        emit statusChanged();
+        emit configChanged();
+    });
+
     xmlFetcher->fetch(&m_manager);
 }
 
@@ -273,9 +282,11 @@ QString EmailAutoConfig::configValue(const QString &tagName, const QString &type
 {
     if (m_status == Available) {
         const QDomNodeList elements = m_config.elementsByTagName(tagName);
+
         for (int i = 0; i < elements.length(); i++) {
             const QDomElement keyElement = elements.at(i).firstChildElement(key);
             const QDomElement socketElement = elements.at(i).firstChildElement(QStringLiteral("socketType"));
+
             if (elements.at(i).toElement().attribute(QStringLiteral("type")) == type
                 && !keyElement.isNull()
                 && (socketType.isEmpty() || (socketElement.text() == socketType))) {
@@ -292,8 +303,10 @@ QStringList EmailAutoConfig::configList(const QString &tagName, const QString &t
     QStringList values;
     if (m_status == Available) {
         const QDomNodeList elements = m_config.elementsByTagName(tagName);
+
         for (int i = 0; i < elements.length(); i++) {
             const QDomElement socketElement = elements.at(i).firstChildElement(QStringLiteral("socketType"));
+
             if (elements.at(i).toElement().attribute(QStringLiteral("type")) == type
                 && (socketType.isEmpty() || (socketElement.text() == socketType))) {
                 const QDomNodeList keys = elements.at(i).toElement().elementsByTagName(key);

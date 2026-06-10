@@ -102,7 +102,8 @@ QVariant AttachmentListModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-void AttachmentListModel::onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status)
+void AttachmentListModel::onAttachmentDownloadStatusChanged(const QString &attachmentLocation,
+                                                            EmailAgent::AttachmentStatus status)
 {
     for (int i = 0; i < m_attachmentsList.count(); ++i) {
         if (m_attachmentsList[i].location == attachmentLocation) {

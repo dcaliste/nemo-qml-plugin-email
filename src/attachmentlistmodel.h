@@ -95,4 +95,5 @@ private:
 };
 
 Q_DECLARE_METATYPE(AttachmentListModel::AttachmentType)
+
 #endif // EMAILATTACHMENTLISTMODEL_H

@@ -100,7 +100,8 @@ public:
     void initMailServer();
     bool ipcConnected();
 
-    void searchMessages(const QMailMessageKey &filter, const QString &bodyText, QMailSearchAction::SearchSpecification spec,
+    void searchMessages(const QMailMessageKey &filter, const QString &bodyText,
+                        QMailSearchAction::SearchSpecification spec,
                         quint64 limit, bool searchBody, const QMailMessageSortKey &sort = QMailMessageSortKey());
     void cancelSearch();
     void cancelAll();
@@ -114,6 +115,8 @@ public:
     void setupAccountFlags();
     int standardFolderId(int accountId, QMailFolder::StandardFolder folder) const;
 
+    void deleteMessages(const QMailMessageIdList &ids);
+
     Q_INVOKABLE bool isOnline();
     Q_INVOKABLE void accountsSyncInbox(uint minimum = 20);
     Q_INVOKABLE void accountsSyncAllFolders(uint minimum = 20);
@@ -121,7 +124,6 @@ public:
     Q_INVOKABLE void deleteFolder(int folderId);
     Q_INVOKABLE void deleteMessage(int messageId);
     Q_INVOKABLE void deleteMessagesFromVariantList(const QVariantList &ids);
-    void deleteMessages(const QMailMessageIdList &ids);
     Q_INVOKABLE void expungeMessages(const QMailMessageIdList &ids);
     Q_INVOKABLE bool downloadAttachment(int messageId, const QString &attachmentLocation);
     Q_INVOKABLE void cancelAttachmentDownload(const QString &attachmentLocation);
@@ -231,7 +233,8 @@ private:
     void cancelCurrentAction();
     void processNextAction();
     quint64 newAction();
-    void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed);
+    void reportError(const QMailAccountId &accountId, QMailServiceAction::Status::ErrorCode errorCode,
+                     bool sendFailed);
     void removeAction(quint64 actionId);
     bool saveAttachmentToDownloads(QMailMessage *message, const QString &attachmentLocation);
     void updateAttachmentDownloadStatus(const QString &attachmentLocation, AttachmentStatus status);
