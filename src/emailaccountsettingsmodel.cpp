@@ -41,7 +41,7 @@ void EmailAccountSettingsModel::init()
 
     // TODO: there is not really any point storing these.
     mUpdateInterval = 60;
-    mSignature = "No GConf configured";
+    mSignature = "No signature configured";
     mNewMailNotification = true;
     mConfirmDeleteMail = true;
 }
