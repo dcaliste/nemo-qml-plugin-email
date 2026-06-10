@@ -597,14 +597,18 @@ void EmailAgent::onOnlineStateChanged(bool isOnline)
             m_accountSynchronizing = 0;
             emit currentSynchronizingAccountIdChanged();
         }
-        if (!m_currentAction.isNull() && m_currentAction->needsNetworkConnection() && m_currentAction->serviceAction()->isRunning()) {
-            // TODO: should this be responsibility of the backend? cancelOperation is kind of hinted being a user initiated action.
+        if (!m_currentAction.isNull()
+                && m_currentAction->needsNetworkConnection()
+                && m_currentAction->serviceAction()->isRunning()) {
+            // TODO: should this be responsibility of the backend? cancelOperation is kind of hinted
+            // being a user initiated action.
             m_currentAction->serviceAction()->cancelOperation();
         }
     }
 }
 
-// Note: values from here are not byte sizes, it's something like "indicative size" which qmf defines internally as size in kilobytes
+// Note: values from here are not byte sizes, it's something like "indicative size" which
+// qmf defines internally as size in kilobytes
 void EmailAgent::progressChanged(uint value, uint total)
 {
     // Attachment download, do not spam the UI check should be done here
@@ -1387,7 +1391,8 @@ quint64 EmailAgent::newAction()
     return quint64(++m_actionCount);
 }
 
-void EmailAgent::reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed)
+void EmailAgent::reportError(const QMailAccountId &accountId, QMailServiceAction::Status::ErrorCode errorCode,
+                             bool sendFailed)
 {
     switch (errorCode) {
     case QMailServiceAction::Status::ErrFrameworkFault:

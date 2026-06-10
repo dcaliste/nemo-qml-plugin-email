@@ -19,12 +19,15 @@ EmailTransmitAddressListModel::EmailTransmitAddressListModel(QObject *parent)
     : QAbstractListModel(parent)
 {
     const QMailAccountIdList ids
-        = QMailStore::instance()->queryAccounts(QMailAccountKey::status(QMailAccount::CanTransmit | QMailAccount::Enabled),
+        = QMailStore::instance()->queryAccounts(QMailAccountKey::status(QMailAccount::CanTransmit
+                                                                        | QMailAccount::Enabled),
                                                 QMailAccountSortKey::id());
+
     for (const QMailAccountId &id : ids) {
         const QMailAccount account(id);
         setAccount(id, account.fromAddress(), account.fromAliases());
     }
+
     connect(QMailStore::instance(), &QMailStore::accountsAdded,
             this, &EmailTransmitAddressListModel::onAccountsAdded);
     connect(QMailStore::instance(), &QMailStore::accountsRemoved,

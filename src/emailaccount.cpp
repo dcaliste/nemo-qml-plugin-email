@@ -104,13 +104,13 @@ public:
 EmailAccount::EmailAccount()
     : mAccount(new QMailAccount())
     , mAccountConfig(new QMailAccountConfiguration())
-    , mRecvCfg(0)
-    , mSendCfg(0)
+    , mRecvCfg(nullptr)
+    , mSendCfg(nullptr)
     , mRetrievalAction(new QMailRetrievalAction(this))
     , mTransmitAction(new QMailTransmitAction(this))
     , mTimeoutTimer(new QTimer(this))
     , mErrorCode(0)
-    , mIncomingTested(0)
+    , mIncomingTested(false)
 { 
     EmailAgent::instance();
     mAccount->setMessageType(QMailMessage::Email);
@@ -120,13 +120,13 @@ EmailAccount::EmailAccount()
 EmailAccount::EmailAccount(const QMailAccount &other)
     : mAccount(new QMailAccount(other))
     , mAccountConfig(new QMailAccountConfiguration())
-    , mRecvCfg(0)
-    , mSendCfg(0)
+    , mRecvCfg(nullptr)
+    , mSendCfg(nullptr)
     , mRetrievalAction(new QMailRetrievalAction(this))
     , mTransmitAction(new QMailTransmitAction(this))
     , mTimeoutTimer(new QTimer(this))
     , mErrorCode(0)
-    , mIncomingTested(0)
+    , mIncomingTested(false)
 {
     EmailAgent::instance();
     *mAccountConfig = QMailStore::instance()->accountConfiguration(mAccount->id());
@@ -320,9 +320,9 @@ int EmailAccount::accountId() const
 {
     if (mAccount->id().isValid()) {
         return mAccount->id().toULongLong();
-    } else {
-        return -1;
     }
+
+    return -1;
 }
 
 void EmailAccount::setAccountId(const int accId)
@@ -475,9 +475,9 @@ bool EmailAccount::pushCapable()
         mAccountConfig = new QMailAccountConfiguration(mAccount->id());
         QMailServiceConfiguration imapConf(mAccountConfig, "imap4");
         return (imapConf.value("pushCapable").toInt() != 0);
-    } else {
-        return false;
     }
+
+    return false;
 }
 
 QString EmailAccount::sendServer() const
@@ -550,7 +550,7 @@ int EmailAccount::errorCode() const
     return mErrorCode;
 }
 
-void EmailAccount::emitError(const EmailAccount::ServerType serverType, const QMailServiceAction::Status::ErrorCode &errorCode)
+void EmailAccount::emitError(EmailAccount::ServerType serverType, QMailServiceAction::Status::ErrorCode errorCode)
 {
     stopTimeout();
 

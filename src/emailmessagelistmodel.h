@@ -22,7 +22,6 @@
 #include <qmailserviceaction.h>
 #include <qmailaccount.h>
 
-
 class Q_DECL_EXPORT EmailMessageListModel : public QMailMessageListModel
 {
     Q_OBJECT
@@ -88,8 +87,8 @@ public:
     EmailMessageListModel(QObject *parent = nullptr);
     ~EmailMessageListModel();
 
-    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     FolderAccessor *folderAccessor() const;
     void setFolderAccessor(FolderAccessor *accessor);

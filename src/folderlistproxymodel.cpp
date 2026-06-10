@@ -33,8 +33,8 @@ QModelIndex FolderListProxyModel::mapToSource(const QModelIndex &proxyIndex) con
     } else {
         return sourceModel()->index(proxyIndex.row(), proxyIndex.column());
     }
-    return QModelIndex();
 
+    return QModelIndex();
 }
 
 QModelIndex FolderListProxyModel::mapFromSource(const QModelIndex &sourceIndex) const

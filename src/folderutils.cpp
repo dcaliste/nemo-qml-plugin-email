@@ -33,7 +33,8 @@ int FolderUtils::folderUnreadCount(const QMailFolderId &folderId, EmailFolder::F
             accountKey = QMailMessageKey::parentAccountId(accountId);
         }
         QMailMessageKey parentFolderKey = accountKey & QMailMessageKey::parentFolderId(folderId);
-        QMailMessageKey unreadKey = folderMessageKey & QMailMessageKey::status(QMailMessage::Read, QMailDataComparator::Excludes);
+        QMailMessageKey unreadKey = folderMessageKey & QMailMessageKey::status(QMailMessage::Read,
+                                                                               QMailDataComparator::Excludes);
         return QMailStore::instance()->countMessages(parentFolderKey & unreadKey);
     }
     case EmailFolder::OutboxFolder:

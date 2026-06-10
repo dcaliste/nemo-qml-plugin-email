@@ -155,7 +155,7 @@ private:
     bool mIncomingTested;
 
     void init();
-    void emitError(const ServerType serverType, const QMailServiceAction::Status::ErrorCode &errorCode);
+    void emitError(ServerType serverType, QMailServiceAction::Status::ErrorCode errorCode);
     void stopTimeout();
 };
 

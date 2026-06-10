@@ -112,12 +112,12 @@ QHash<int, QByteArray> EmailMessageListModel::roleNames() const
     return roles;
 }
 
-int EmailMessageListModel::rowCount(const QModelIndex & parent) const
+int EmailMessageListModel::rowCount(const QModelIndex &parent) const
 {
     return QMailMessageListModel::rowCount(parent);
 }
 
-QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
+QVariant EmailMessageListModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() >= rowCount(parent(index))) {
         qCWarning(lcEmail) << Q_FUNC_INFO << "Invalid Index";
@@ -419,6 +419,7 @@ bool EmailMessageListModel::unreadMailsSelected() const
 void EmailMessageListModel::setSortBy(EmailMessageListModel::Sort sort)
 {
     Qt::SortOrder order = Qt::AscendingOrder;
+
     switch (sort) {
     case Time:
     case Attachments:

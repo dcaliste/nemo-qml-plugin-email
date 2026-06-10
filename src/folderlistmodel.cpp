@@ -31,7 +31,8 @@ static bool folderLessThan(const QMailFolderId &idA, const QMailFolderId &idB)
     } else if (aFolder.parentAccountId() != bFolder.parentAccountId()) {
         // Different accounts, we still want to compare since local storage
         // can contain some of the standard folders for the account
-        qCWarning(lcEmail) << Q_FUNC_INFO << "Comparing folders from different accounts, model only supports a single account";
+        qCWarning(lcEmail) << Q_FUNC_INFO
+                           << "Comparing folders from different accounts, model only supports a single account";
         return aFolder.parentAccountId() < bFolder.parentAccountId();
     } else {
         QMailFolderId commonId;
@@ -183,9 +184,8 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
     case FolderName:
         if (item->folderId == QMailFolderId::LocalStorageFolderId) {
             return localFolderName(item->folderType);
-        } else {
-            return folder.displayName();
         }
+        return folder.displayName();
     case FolderId:
         return item->folderId.toULongLong();
     case FolderUnreadCount:
@@ -312,7 +312,7 @@ void FolderListModel::onFoldersAdded(const QMailFolderIdList &ids)
     if (folder.parentAccountId() != m_accountId || !folderId.isValid()) {
         return;
     }
-    //FIXME: improve 'folderLessThan' function to place standard folders (with siblings) on top
+    // FIXME: improve 'folderLessThan' function to place standard folders (with siblings) on top
     int prevFolderListSize = m_folderList.size();
     doReloadModel(); // Reload model data
     bool addedFolderFound = false;
@@ -373,7 +373,8 @@ void FolderListModel::updateUnreadCount(const QMailFolderIdList &folderIds)
                                                                          folderItem->messageKey, m_accountId);
                 dataChanged(index(i,0), index(i,0), QVector<int>() << FolderUnreadCount);
             } else {
-                qCWarning(lcEmail) << Q_FUNC_INFO << "Failed to update unread count for folderId" << tmpFolderId.toULongLong();
+                qCWarning(lcEmail) << Q_FUNC_INFO << "Failed to update unread count for folderId"
+                                   << tmpFolderId.toULongLong();
             }
         }
     }
@@ -529,10 +530,10 @@ void FolderListModel::doReloadModel()
     if (!draftsFolderId.isValid()) {
         qCDebug(lcEmail) << "Creating local drafts folder!";
         createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::DraftsFolder,
-                               QMailMessageKey::status(QMailMessage::Draft) &
-                               ~QMailMessageKey::status(QMailMessage::Outbox) &
-                               ~QMailMessageKey::status(QMailMessage::Trash) &
-                               excludeRemovedKey);
+                               QMailMessageKey::status(QMailMessage::Draft)
+                               & ~QMailMessageKey::status(QMailMessage::Outbox)
+                               & ~QMailMessageKey::status(QMailMessage::Trash)
+                               & excludeRemovedKey);
     } else {
         addFolderAndChildren(draftsFolderId, messageKey, folders);
     }
@@ -542,9 +543,9 @@ void FolderListModel::doReloadModel()
     if (!sentFolderId.isValid()) {
         qCDebug(lcEmail) << "Creating local sent folder!";
         createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::SentFolder,
-                               QMailMessageKey::status(QMailMessage::Sent) &
-                               ~QMailMessageKey::status(QMailMessage::Trash) &
-                               excludeRemovedKey);
+                               QMailMessageKey::status(QMailMessage::Sent)
+                               & ~QMailMessageKey::status(QMailMessage::Trash)
+                               & excludeRemovedKey);
     } else {
         addFolderAndChildren(sentFolderId, messageKey, folders);
     }
@@ -554,8 +555,8 @@ void FolderListModel::doReloadModel()
     if (!trashFolderId.isValid()) {
         qCDebug(lcEmail) << "Creating local trash folder!";
         createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::TrashFolder,
-                               QMailMessageKey::status(QMailMessage::Trash) &
-                               excludeRemovedKey);
+                               QMailMessageKey::status(QMailMessage::Trash)
+                               & excludeRemovedKey);
     } else {
         addFolderAndChildren(trashFolderId, messageKey, folders);
     }
@@ -564,9 +565,9 @@ void FolderListModel::doReloadModel()
     QMailFolderId outboxFolderId = account.standardFolder(QMailFolder::OutboxFolder);
     if (!outboxFolderId.isValid()) {
         createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::OutboxFolder,
-                               QMailMessageKey::status(QMailMessage::Outbox) &
-                               ~QMailMessageKey::status(QMailMessage::Trash) &
-                               excludeRemovedKey);
+                               QMailMessageKey::status(QMailMessage::Outbox)
+                               & ~QMailMessageKey::status(QMailMessage::Trash)
+                               & excludeRemovedKey);
     } else {
         addFolderAndChildren(outboxFolderId, messageKey, folders);
     }
