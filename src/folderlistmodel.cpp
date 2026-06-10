@@ -171,7 +171,7 @@ int FolderListModel::rowCount(const QModelIndex &parent) const
 
 QVariant FolderListModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() > m_folderList.count())
+    if (!index.isValid() || index.row() >= m_folderList.count())
         return QVariant();
 
     const FolderItem *item = m_folderList.at(index.row());
