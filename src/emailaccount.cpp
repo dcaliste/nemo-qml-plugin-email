@@ -229,6 +229,7 @@ void EmailAccount::test(int timeout)
     if (mAccount->id().isValid()) {
         connect(mTimeoutTimer, &QTimer::timeout,
                 this, &EmailAccount::timeout);
+        mTimeoutTimer->setSingleShot(true);
         mTimeoutTimer->start(timeout * 1000);
         mRetrievalAction->retrieveFolderList(mAccount->id(), QMailFolderId(), true);
     } else {
