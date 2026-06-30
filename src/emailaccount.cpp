@@ -93,7 +93,8 @@ namespace {
 // workaround to QMF hiding its base64 password encoder in
 // protected methods
 // TODO: just use QByteArray's encoding support?
-class Base64 : public QMailServiceConfiguration {
+class Base64 : public QMailServiceConfiguration
+{
 public:
     static QString decode(const QString &value)
         { return decodeValue(value); }
@@ -108,7 +109,7 @@ EmailAccount::EmailAccount()
     , mSendCfg(nullptr)
     , mRetrievalAction(new QMailRetrievalAction(this))
     , mTransmitAction(new QMailTransmitAction(this))
-    , mTimeoutTimer(new QTimer(this))
+    , mTimeoutTimer(nullptr)
     , mErrorCode(0)
     , mIncomingTested(false)
 { 
@@ -124,7 +125,7 @@ EmailAccount::EmailAccount(const QMailAccount &other)
     , mSendCfg(nullptr)
     , mRetrievalAction(new QMailRetrievalAction(this))
     , mTransmitAction(new QMailTransmitAction(this))
-    , mTimeoutTimer(new QTimer(this))
+    , mTimeoutTimer(nullptr)
     , mErrorCode(0)
     , mIncomingTested(false)
 {
@@ -227,9 +228,12 @@ void EmailAccount::test(int timeout)
     stopTimeout();
 
     if (mAccount->id().isValid()) {
-        connect(mTimeoutTimer, &QTimer::timeout,
-                this, &EmailAccount::timeout);
-        mTimeoutTimer->setSingleShot(true);
+        if (!mTimeoutTimer) {
+            mTimeoutTimer = new QTimer(this);
+            connect(mTimeoutTimer, &QTimer::timeout,
+                    this, &EmailAccount::timeout);
+            mTimeoutTimer->setSingleShot(true);
+        }
         mTimeoutTimer->start(timeout * 1000);
         mRetrievalAction->retrieveFolderList(mAccount->id(), QMailFolderId(), true);
     } else {
