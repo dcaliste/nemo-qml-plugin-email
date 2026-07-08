@@ -211,7 +211,8 @@ QVariant EmailMessageListModel::data(const QModelIndex &index, int role) const
     } else if (role == MessageTimeSectionRole) {
         return messageMetaData.date().toLocalTime().date();
     } else if (role == MessagePriorityRole) {
-        if (messageMetaData.status() & QMailMessage::HighPriority) {
+        if (messageMetaData.status() & QMailMessage::HighPriority
+            || messageMetaData.status() & QMailMessage::Important) {
             return HighPriority;
         } else if (messageMetaData.status() & QMailMessage::LowPriority) {
             return LowPriority;

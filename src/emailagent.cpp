@@ -955,6 +955,22 @@ void EmailAgent::markMessageAsUnread(int messageId)
     exportUpdates(QMailAccountIdList() << accountForMessageId(id));
 }
 
+void EmailAgent::markMessageAsImportant(int messageId)
+{
+    QMailMessageId id(messageId);
+    quint64 status(QMailMessage::Important);
+    QMailStore::instance()->updateMessagesMetaData(QMailMessageKey::id(id), status, true);
+    exportUpdates(QMailAccountIdList() << accountForMessageId(id));
+}
+
+void EmailAgent::markMessageAsNormalImportance(int messageId)
+{
+    QMailMessageId id(messageId);
+    quint64 status(QMailMessage::Important);
+    QMailStore::instance()->updateMessagesMetaData(QMailMessageKey::id(id), status, false);
+    exportUpdates(QMailAccountIdList() << accountForMessageId(id));
+}
+
 void EmailAgent::moveMessage(int messageId, int destinationId)
 {
     QMailMessageId msgId(messageId);

@@ -140,6 +140,8 @@ public:
     Q_INVOKABLE bool isMessageValid(int messageId);
     Q_INVOKABLE void markMessageAsRead(int messageId);
     Q_INVOKABLE void markMessageAsUnread(int messageId);
+    Q_INVOKABLE void markMessageAsImportant(int messageId);
+    Q_INVOKABLE void markMessageAsNormalImportance(int messageId);
     Q_INVOKABLE void moveFolder(int folderId, int parentFolderId);
     Q_INVOKABLE void moveMessage(int messageId, int destinationId);
     Q_INVOKABLE void renameFolder(int folderId, const QString &name);
