@@ -303,6 +303,19 @@ void EmailAccount::activityChanged(QMailServiceAction::Activity activity)
                 mRetrievalAction->createStandardFolders(mAccount->id());
                 mTransmitAction->transmitMessages(mAccount->id());
             }
+        } else if (activity == QMailServiceAction::Failed
+                   && status.errorCode == QMailServiceAction::Status::ErrLoginFailed
+                   && mRecvCfg->value("authentication") != QString::number(QMail::PlainMechanism)) {
+            // This if else branch was introduced to circumvent the fact that
+            // there is no mechanism to easily know the log-in capabilities of
+            // a newly created account. In case the default authentication
+            // mechanism chosen by QMF (like XOAUTH2) is not available,
+            // try a fallback to PLAIN mechanism before reporting a login error.
+            qCWarning(lcEmail) << "login failed during test, falling back to PLAIN mechanism.";
+            mRecvCfg->setValue("authentication", QString::number(QMail::PlainMechanism));
+            mSendCfg->setValue("authentication", QString::number(QMail::PlainMechanism));
+            QMailStore::instance()->updateAccountConfiguration(mAccountConfig);
+            test(mTimeoutTimer->interval());
         } else if (activity == QMailServiceAction::Failed && !mIncomingTested) {
             mErrorMessage = status.text;
             mErrorCode = status.errorCode;
