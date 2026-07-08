@@ -165,6 +165,8 @@ void EmailAccount::init()
         mRecvType = "pop3";
         mAccountConfig->addServiceConfiguration(mRecvType);
     }
+    delete mSendCfg;
+    delete mRecvCfg;
     mSendCfg = new QMailServiceConfiguration(mAccountConfig, "smtp");
     mRecvCfg = new QMailServiceConfiguration(mAccountConfig, mRecvType);
     mSendCfg->setType(QMailServiceConfiguration::Sink);
@@ -334,8 +336,9 @@ void EmailAccount::setAccountId(const int accId)
 {
     QMailAccountId accountId(accId);
     if (accountId.isValid()) {
-        mAccount = new QMailAccount(accountId);
-        mAccountConfig = new QMailAccountConfiguration(mAccount->id());
+        *mAccount = QMailAccount(accountId);
+        *mAccountConfig = QMailAccountConfiguration(mAccount->id());
+        init();
     } else {
         qCWarning(lcEmail) << "Invalid account id" << accountId.toULongLong();
     }
@@ -477,8 +480,8 @@ bool EmailAccount::pushCapable()
 {
     if (mRecvType.toLower() == "imap4") {
         // Reload configuration since this setting is saved by messageserver
-        mAccountConfig = new QMailAccountConfiguration(mAccount->id());
-        QMailServiceConfiguration imapConf(mAccountConfig, "imap4");
+        QMailAccountConfiguration config(mAccount->id());
+        QMailServiceConfiguration imapConf(config, "imap4");
         return (imapConf.value("pushCapable").toInt() != 0);
     }
 
