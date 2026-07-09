@@ -175,9 +175,9 @@ void EmailAccount::init()
     mRecvCfg->setVersion(100);
 
     connect(mRetrievalAction, &QMailRetrievalAction::activityChanged,
-            this, &EmailAccount::activityChanged);
+            this, &EmailAccount::onRetrievalActivityChanged);
     connect(mTransmitAction, &QMailTransmitAction::activityChanged,
-            this, &EmailAccount::activityChanged);
+            this, &EmailAccount::onTransmitActivityChanged);
 }
 
 void EmailAccount::clear()
@@ -245,12 +245,10 @@ void EmailAccount::test(int timeout)
 
 void EmailAccount::cancelTest()
 {
-    //cancel retrieval action
     if (mRetrievalAction->isRunning()) {
         mRetrievalAction->cancelOperation();
     }
 
-    //cancel transmit action
     if (mTransmitAction->isRunning()) {
         mTransmitAction->cancelOperation();
     }
@@ -292,47 +290,49 @@ void EmailAccount::stopTimeout()
     }
 }
 
-void EmailAccount::activityChanged(QMailServiceAction::Activity activity)
+void EmailAccount::onRetrievalActivityChanged(QMailServiceAction::Activity activity)
 {
-    if (sender() == static_cast<QObject*>(mRetrievalAction)) {
-        const QMailServiceAction::Status status(mRetrievalAction->status());
+    const QMailServiceAction::Status status(mRetrievalAction->status());
 
-        if (activity == QMailServiceAction::Successful) {
-            if (!mIncomingTested) {
-                mIncomingTested = true;
-                mRetrievalAction->createStandardFolders(mAccount->id());
-                mTransmitAction->transmitMessages(mAccount->id());
-            }
-        } else if (activity == QMailServiceAction::Failed
-                   && status.errorCode == QMailServiceAction::Status::ErrLoginFailed
-                   && mRecvCfg->value("authentication") != QString::number(QMail::PlainMechanism)) {
-            // This if else branch was introduced to circumvent the fact that
-            // there is no mechanism to easily know the log-in capabilities of
-            // a newly created account. In case the default authentication
-            // mechanism chosen by QMF (like XOAUTH2) is not available,
-            // try a fallback to PLAIN mechanism before reporting a login error.
-            qCWarning(lcEmail) << "login failed during test, falling back to PLAIN mechanism.";
-            mRecvCfg->setValue("authentication", QString::number(QMail::PlainMechanism));
-            mSendCfg->setValue("authentication", QString::number(QMail::PlainMechanism));
-            QMailStore::instance()->updateAccountConfiguration(mAccountConfig);
-            test(mTimeoutTimer->interval());
-        } else if (activity == QMailServiceAction::Failed && !mIncomingTested) {
-            mErrorMessage = status.text;
-            mErrorCode = status.errorCode;
-            qCDebug(lcEmail) << "Testing configuration failed with error" << mErrorMessage << "code:" << mErrorCode;
-            emitError(IncomingServer, status.errorCode);
+    if (activity == QMailServiceAction::Successful) {
+        if (!mIncomingTested) {
+            mIncomingTested = true;
+            mRetrievalAction->createStandardFolders(mAccount->id());
+            mTransmitAction->transmitMessages(mAccount->id());
         }
-    } else if (sender() == static_cast<QObject*>(mTransmitAction)) {
-        const QMailServiceAction::Status status(mTransmitAction->status());
-        if (activity == QMailServiceAction::Successful) {
-            stopTimeout();
-            emit testSucceeded();
-        } else if (activity == QMailServiceAction::Failed) {
-            mErrorMessage = status.text;
-            mErrorCode = status.errorCode;
-            qCDebug(lcEmail) << "Testing configuration failed with error" << mErrorMessage << "code:" << mErrorCode;
-            emitError(OutgoingServer, status.errorCode);
-        }
+    } else if (activity == QMailServiceAction::Failed
+               && status.errorCode == QMailServiceAction::Status::ErrLoginFailed
+               && mRecvCfg->value("authentication") != QString::number(QMail::PlainMechanism)) {
+        // This if else branch was introduced to circumvent the fact that
+        // there is no mechanism to easily know the log-in capabilities of
+        // a newly created account. In case the default authentication
+        // mechanism chosen by QMF (like XOAUTH2) is not available,
+        // try a fallback to PLAIN mechanism before reporting a login error.
+        qCWarning(lcEmail) << "login failed during test, falling back to PLAIN mechanism.";
+        mRecvCfg->setValue("authentication", QString::number(QMail::PlainMechanism));
+        mSendCfg->setValue("authentication", QString::number(QMail::PlainMechanism));
+        QMailStore::instance()->updateAccountConfiguration(mAccountConfig);
+        test(mTimeoutTimer->interval());
+    } else if (activity == QMailServiceAction::Failed && !mIncomingTested) {
+        mErrorMessage = status.text;
+        mErrorCode = status.errorCode;
+        qCDebug(lcEmail) << "Testing configuration failed with error" << mErrorMessage << "code:" << mErrorCode;
+        emitError(IncomingServer, status.errorCode);
+    }
+}
+
+void EmailAccount::onTransmitActivityChanged(QMailServiceAction::Activity activity)
+{
+    const QMailServiceAction::Status status(mTransmitAction->status());
+
+    if (activity == QMailServiceAction::Successful) {
+        stopTimeout();
+        emit testSucceeded();
+    } else if (activity == QMailServiceAction::Failed) {
+        mErrorMessage = status.text;
+        mErrorCode = status.errorCode;
+        qCDebug(lcEmail) << "Testing configuration failed with error" << mErrorMessage << "code:" << mErrorCode;
+        emitError(OutgoingServer, status.errorCode);
     }
 }
 

@@ -138,7 +138,8 @@ signals:
 
 private slots:
     void timeout();
-    void activityChanged(QMailServiceAction::Activity activity);
+    void onRetrievalActivityChanged(QMailServiceAction::Activity activity);
+    void onTransmitActivityChanged(QMailServiceAction::Activity activity);
 
 private:
     QMailAccount *mAccount;
