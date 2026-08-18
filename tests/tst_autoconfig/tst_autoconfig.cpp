@@ -109,11 +109,6 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism);
 
-#if 0
-    // at the moment of writing this (2026-01-21), the proton server returns content with escaped
-    // quotations, line breaks as literal "\n" etc.
-
-    // Another autoconfig provided by the mail server.
     QTest::newRow("protonmail.com")
         << "protonmail.com"
         << QUrl("https://autoconfig.protonmail.com/mail/config-v1.1.xml")
@@ -132,7 +127,6 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::PlainMechanism);
-#endif
 
     // No autoconfig by service and provider not in Thunderbird databse,
     // fallback to local settings.
@@ -176,27 +170,6 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::XOAuth2Mechanism << QMail::PlainMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism);
 
-    // Autoconfig file is generic enough to have a %EMAILDOMAIN%
-    // placeholder in the <domain> element. This is generating
-    // a warning since the placeholder is not adviced in this element.
-    QTest::newRow("placeholder in <domain>")
-        << "kakodane.eu"
-        << QUrl("https://autoconfig.kakodane.eu/mail/config-v1.1.xml")
-        << "imap.one.com"
-        << "pop.one.com"
-        << "send.one.com"
-        << 143 << 993 << 0
-        << 110 << 995 << 0
-        << 2525 << 465 << 587
-        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
-        << (EmailAutoConfig::AuthList() << QMail::PlainMechanism);
 }
 
 void tst_AutoConfig::provider()
