@@ -51,6 +51,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(CryptoProtocol cryptoProtocol READ cryptoProtocol NOTIFY cryptoProtocolChanged)
     Q_PROPERTY(SignatureStatus signatureStatus READ signatureStatus NOTIFY signatureStatusChanged FINAL)
     Q_PROPERTY(EncryptionStatus encryptionStatus READ encryptionStatus NOTIFY encryptionStatusChanged FINAL)
+    Q_PROPERTY(bool canDecrypt READ canDecrypt NOTIFY canDecryptChanged)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
     Q_PROPERTY(QString from READ from WRITE setFrom NOTIFY fromChanged)
     Q_PROPERTY(QString fromAddress READ fromAddress NOTIFY fromChanged)
@@ -167,6 +168,7 @@ public:
     CryptoProtocol cryptoProtocol() const;
     SignatureStatus signatureStatus() const;
     EncryptionStatus encryptionStatus() const;
+    bool canDecrypt() const;
     QDateTime date() const;
     QString from() const;
     QString fromAddress() const;
@@ -234,6 +236,7 @@ signals:
     void cryptoProtocolChanged();
     void signatureStatusChanged();
     void encryptionStatusChanged();
+    void canDecryptChanged();
     void dateChanged();
     void fromChanged();
     void htmlBodyChanged();

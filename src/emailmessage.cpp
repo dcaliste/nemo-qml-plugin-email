@@ -1346,6 +1346,7 @@ void EmailMessage::emitMessageReloadedSignals()
     emit storedMessageChanged();
     emit toChanged();
     emit quotedBodyChanged();
+    emit canDecryptChanged();
 
     // Update and emit cryptography status.
     if (m_autoVerifySignature) {
@@ -1666,6 +1667,11 @@ QStringList EmailMessage::ccEmailAddresses() const
 EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
 {
     return cryptoProtocolForKey(m_signingPlugin, m_signingKeys.value(0, QString()));
+}
+
+bool EmailMessage::canDecrypt() const
+{
+    return m_id.isValid() ? QMailCryptographicService::canDecrypt(m_msg) : false;
 }
 
 typedef QPair<QSharedPointer<QMailMessage>, QMailCrypto::DecryptionResult> DecryptionMessage;
