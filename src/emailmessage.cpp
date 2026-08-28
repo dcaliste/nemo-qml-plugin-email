@@ -1571,11 +1571,19 @@ EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QStri
     return EmailMessage::SignedMissing;
 }
 
-static QMailCrypto::VerificationResult verificationHelper(QMailMessage *message)
+static QMailCrypto::VerificationResult verificationHelper(QMailMessage *message, const QString &pluginName)
 {
     QMailCryptographicServiceInterface *engine = nullptr;
-    const QMailMessagePartContainer *cryptoContainer
-        = QMailCryptographicService::findSignedContainer(message, &engine);
+    const QMailMessagePartContainer *cryptoContainer = nullptr;
+    // Use specified account crypto plugin, if any.
+    if (pluginName.isEmpty()) {
+        cryptoContainer
+            = QMailCryptographicService::findSignedContainer(message, &engine);
+    } else {
+        engine = QMailCryptographicService::instance()->instance(pluginName);
+        if (engine)
+            cryptoContainer = engine->findSignedContainer(message);
+    }
     QMailCrypto::VerificationResult result = (cryptoContainer && engine)
         ? engine->verifySignature(*cryptoContainer)
         : QMailCrypto::VerificationResult(QMailCrypto::MissingSignature);
@@ -1618,8 +1626,10 @@ void EmailMessage::verifySignature()
                 });
         // Delegate the ownership to the thread later.
         QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
+        QMailAccountConfiguration config(m_msg.parentAccountId());
+        const QString pluginName = QMailCryptographicServiceConfiguration(&config).signatureType();
         QFuture<QMailCrypto::VerificationResult> future =
-            QtConcurrent::run(verificationHelper, verificationCopy);
+            QtConcurrent::run(verificationHelper, verificationCopy, pluginName);
         verifyingWatcher->setFuture(future);
     } else {
         setSignatureStatus(EmailMessage::NoDigitalSignature);
