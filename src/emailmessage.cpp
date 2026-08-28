@@ -1014,7 +1014,6 @@ void EmailMessage::setSigningPlugin(const QString &cryptoType)
 
     m_signingPlugin = cryptoType;
     emit signingPluginChanged();
-    emit cryptoProtocolChanged();
 }
 
 void EmailMessage::setSigningKeys(const QStringList &fingerPrints)
@@ -1024,7 +1023,6 @@ void EmailMessage::setSigningKeys(const QStringList &fingerPrints)
 
     m_signingKeys = fingerPrints;
     emit signingKeysChanged();
-    emit cryptoProtocolChanged();
 }
 
 void EmailMessage::setMessageId(int messageId)
@@ -1347,6 +1345,7 @@ void EmailMessage::emitMessageReloadedSignals()
     emit toChanged();
     emit quotedBodyChanged();
     emit canDecryptChanged();
+    emit cryptoProtocolChanged();
 
     // Update and emit cryptography status.
     if (m_autoVerifySignature) {
@@ -1561,7 +1560,6 @@ void EmailMessage::onVerifyCompleted(QMailCrypto::VerificationResult result)
     for (int i = 0; i < m_cryptoResult.keyResults.length(); i++)
         m_signingKeys.append(m_cryptoResult.keyResults.at(i).key);
     emit signingKeysChanged();
-    emit cryptoProtocolChanged();
 }
 
 EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QString &keyIdentifier) const
@@ -1666,7 +1664,21 @@ QStringList EmailMessage::ccEmailAddresses() const
 
 EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
 {
-    return cryptoProtocolForKey(m_signingPlugin, m_signingKeys.value(0, QString()));
+    if (m_msg.multipartType() == QMailMessagePartContainer::MultipartSigned && m_msg.partCount() == 2) {
+        const QMailMessagePart &signature = m_msg.partAt(1);
+        if (signature.contentType().matches("application", "pgp-signature")) {
+            return OpenPGP;
+        } else if (signature.contentType().matches("application", "pkcs7-signature")
+                   || signature.contentType().matches("application", "x-pkcs7-signature")) {
+            return SecureMIME;
+        }
+    } else if (m_msg.isEncrypted()) {
+        const QMailMessagePart &control = m_msg.partAt(0);
+        if (control.contentType().matches("application", "pgp-encrypted")) {
+            return OpenPGP;
+        }
+    }
+    return UnknownProtocol;
 }
 
 bool EmailMessage::canDecrypt() const
