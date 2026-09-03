@@ -1571,11 +1571,19 @@ EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QStri
     return EmailMessage::SignedMissing;
 }
 
-static QMailCrypto::VerificationResult verificationHelper(QMailMessage *message)
+static QMailCrypto::VerificationResult verificationHelper(QMailMessage *message, const QString &pluginName)
 {
     QMailCryptographicServiceInterface *engine = nullptr;
-    const QMailMessagePartContainer *cryptoContainer
-        = QMailCryptographicService::findSignedContainer(message, &engine);
+    const QMailMessagePartContainer *cryptoContainer = nullptr;
+    // Use specified account crypto plugin, if any.
+    if (pluginName.isEmpty()) {
+        cryptoContainer
+            = QMailCryptographicService::findSignedContainer(message, &engine);
+    } else {
+        engine = QMailCryptographicService::instance()->instance(pluginName);
+        if (engine)
+            cryptoContainer = engine->findSignedContainer(message);
+    }
     QMailCrypto::VerificationResult result = (cryptoContainer && engine)
         ? engine->verifySignature(*cryptoContainer)
         : QMailCrypto::VerificationResult(QMailCrypto::MissingSignature);
@@ -1618,8 +1626,10 @@ void EmailMessage::verifySignature()
                 });
         // Delegate the ownership to the thread later.
         QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
+        QMailAccountConfiguration config(m_msg.parentAccountId());
+        const QString pluginName = QMailCryptographicServiceConfiguration(&config).signatureType();
         QFuture<QMailCrypto::VerificationResult> future =
-            QtConcurrent::run(verificationHelper, verificationCopy);
+            QtConcurrent::run(verificationHelper, verificationCopy, pluginName);
         verifyingWatcher->setFuture(future);
     } else {
         setSignatureStatus(EmailMessage::NoDigitalSignature);
@@ -1683,13 +1693,18 @@ EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
 
 bool EmailMessage::canDecrypt() const
 {
-    return m_id.isValid() ? QMailCryptographicService::canDecrypt(m_msg) : false;
+    if (m_id.isValid()) {
+        QMailAccountConfiguration config(m_msg.parentAccountId());
+        const QString pluginName = QMailCryptographicServiceConfiguration(&config).signatureType();
+        return QMailCryptographicService::canDecrypt(m_msg, pluginName);
+    }
+    return false;
 }
 
 typedef QPair<QSharedPointer<QMailMessage>, QMailCrypto::DecryptionResult> DecryptionMessage;
-static DecryptionMessage decryptionHelper(QMailMessage *message)
+static DecryptionMessage decryptionHelper(QMailMessage *message, const QString &pluginName)
 {
-    const QMailCrypto::DecryptionResult result = QMailCryptographicService::decrypt(message);
+    const QMailCrypto::DecryptionResult result = QMailCryptographicService::decrypt(message, pluginName);
     return DecryptionMessage(QSharedPointer<QMailMessage>(message), result);
 }
 
@@ -1731,8 +1746,10 @@ void EmailMessage::decrypt()
                 });
         // Delegate the ownership to the thread later.
         QMailMessage *decryptionCopy = new QMailMessage(m_msg.id());
+        QMailAccountConfiguration config(m_msg.parentAccountId());
+        const QString pluginName = QMailCryptographicServiceConfiguration(&config).signatureType();
         QFuture<DecryptionMessage> future =
-            QtConcurrent::run(decryptionHelper, decryptionCopy);
+            QtConcurrent::run(decryptionHelper, decryptionCopy, pluginName);
         decryptingWatcher->setFuture(future);
     } else {
         setEncryptionStatus(EmailMessage::NoDigitalEncryption);
