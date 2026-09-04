@@ -523,15 +523,22 @@ AttachmentListModel::Attachment EmailMessage::attachment(const QString &location
         attachment.location = location;
         attachment.displayName = attachmentName(part);
         attachment.downloaded = attachmentPartDownloaded(part);
-        attachment.status = EmailAgent::instance()->attachmentDownloadStatus(m_msg, location, &path);
         attachment.mimeType = QString::fromLatin1(part.contentType().content());
         attachment.size = attachmentSize(part);
         attachment.title = attachmentTitle(part);
         attachment.type = (isEmailPart(part)) ? AttachmentListModel::Email : AttachmentListModel::Other;
-        if (!path.isEmpty()) {
-            attachment.url = QUrl::fromLocalFile(path).toString();
+        if (!m_msg.id().isValid()) {
+            // Memory only message.
+            attachment.status = EmailAgent::Downloaded;
+            attachment.progressInfo = 1.;
+            attachment.url = QStringLiteral("message://%1/%2").arg(m_id.toULongLong()).arg(location);
+        } else {
+            attachment.status = EmailAgent::instance()->attachmentDownloadStatus(m_msg, location, &path);
+            if (!path.isEmpty()) {
+                attachment.url = QUrl::fromLocalFile(path).toString();
+            }
+            attachment.progressInfo = EmailAgent::instance()->attachmentDownloadProgress(location);
         }
-        attachment.progressInfo = EmailAgent::instance()->attachmentDownloadProgress(location);
     }
 
     return attachment;
@@ -1249,6 +1256,7 @@ void EmailMessage::buildMessage(QMailMessage *msg)
         // Attachments by message part
         QList<QMailMessagePart> messageParts;
         QList<const QMailMessagePart *> messagePartPointers;
+        QList<QSharedPointer<QMailMessage>> memoryMessages;
 
         for (QString attachment : m_attachments) {
             // Attaching referenced emails
@@ -1277,10 +1285,27 @@ void EmailMessage::buildMessage(QMailMessage *msg)
                 messageParts.push_back(part);
                 messagePartPointers.push_back(&part);
 
-            // Attaching a file
             } else if (attachment.startsWith("file://")) {
+                // Attaching a file from a local URL.
                 attachments.append(QUrl(attachment).toLocalFile());
+            } else if (attachment.startsWith("message://")) {
+                // Attaching a part from a in-memory message.
+                const QString content = attachment.mid(10);
+                int sep = content.indexOf('/');
+                QMailMessageId msgId(content.left(sep).toULongLong());
+                QSharedPointer<QMailMessage> message
+                    = cachedMemoryMessages->value(msgId);
+                if (message) {
+                    const QMailMessagePart::Location location(content.mid(sep + 1));
+                    if (message->contains(location)) {
+                        // Ensure that the part pointer stays alive up to the setAttachments() call.
+                        memoryMessages.append(message);
+                        const QMailMessagePart *part = &message->partAt(location);
+                        messagePartPointers.append(part);
+                    }
+                }
             } else {
+                // Attaching a file from a path.
                 attachments.append(attachment);
             }
         }
