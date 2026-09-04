@@ -30,6 +30,7 @@
 #include <QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <QGlobalStatic>
 
 namespace {
 
@@ -54,6 +55,9 @@ struct PartFinder {
 const QStringList supportedImageTypes = (QStringList()
                                          <<  "jpeg" << "jpg" << "png" << "gif" << "bmp" << "ico" << "webp");
 
+// Cache transient memory changes, like for encrypted messages.
+typedef QHash<QMailMessageId, QSharedPointer<QMailMessage>> MemoryMessageHash;
+Q_GLOBAL_STATIC(MemoryMessageHash, cachedMemoryMessages);
 }
 
 EmailMessage::EmailMessage(QObject *parent)
@@ -76,6 +80,13 @@ EmailMessage::EmailMessage(QObject *parent)
 
 EmailMessage::~EmailMessage()
 {
+    if (m_decryptedMessage) {
+        // Policy: the decrypted message is kept in cache as long
+        // as the message that triggered the decryption is alive.
+        // Like that, replying to or forwarding the message uses the
+        // decrypted version.
+        cachedMemoryMessages->remove(m_id);
+    }
 }
 
 // ############ Slots ###############
@@ -1032,6 +1043,13 @@ void EmailMessage::setMessageId(int messageId)
         if (msgId.isValid()) {
             m_id = msgId;
             m_msg = QMailMessage(msgId);
+            if (m_msg.isEncrypted()) {
+                // Look if we have a decrypted version in cache.
+                QSharedPointer<QMailMessage> cached = cachedMemoryMessages->value(m_id);
+                if (cached) {
+                    m_msg = *cached;
+                }
+            }
         } else {
             m_id = QMailMessageId();
             m_msg = QMailMessage();
@@ -1625,7 +1643,9 @@ void EmailMessage::verifySignature()
                     onVerifyCompleted(verifyingWatcher->result());
                 });
         // Delegate the ownership to the thread later.
-        QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
+        // Reload the message, if not memory only.
+        QMailMessage *verificationCopy
+            = m_msg.id().isValid() ? new QMailMessage(m_msg.id()) : new QMailMessage(m_msg);
         QMailAccountConfiguration config(m_msg.parentAccountId());
         const QString pluginName = QMailCryptographicServiceConfiguration(&config).signatureType();
         QFuture<QMailCrypto::VerificationResult> future =
@@ -1705,6 +1725,8 @@ typedef QPair<QSharedPointer<QMailMessage>, QMailCrypto::DecryptionResult> Decry
 static DecryptionMessage decryptionHelper(QMailMessage *message, const QString &pluginName)
 {
     const QMailCrypto::DecryptionResult result = QMailCryptographicService::decrypt(message, pluginName);
+    // Decryption is for memory only, remove any link to the stored version.
+    message->setId(QMailMessageId());
     return DecryptionMessage(QSharedPointer<QMailMessage>(message), result);
 }
 
@@ -1737,6 +1759,8 @@ void EmailMessage::decrypt()
                     DecryptionMessage result = decryptingWatcher->result();
                     if (result.second.status == QMailCrypto::Decrypted) {
                         setEncryptionStatus(EmailMessage::NoDigitalEncryption);
+                        m_decryptedMessage = true;
+                        cachedMemoryMessages->insert(m_id, result.first);
                         m_msg = *result.first;
                         m_bodyText = EmailAgent::instance()->bodyPlainText(m_msg);
                         emitMessageReloadedSignals();
